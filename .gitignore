@@ -11,3 +11,6 @@ data/
 # Generated images
 *.png
 *.jpg
+
+# Trained model weights
+generator.pth

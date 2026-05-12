@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAN Image Generator</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:40px 20px}
+        .container{width:100%;max-width:600px;text-align:center}
+        h1{font-size:2rem;font-weight:700;margin-bottom:6px;color:#fff}
+        .subtitle{color:#888;font-size:.95rem;margin-bottom:36px}
+        button{padding:14px 40px;background:#7c5cfc;color:#fff;font-size:1rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:background 0.2s}
+        button:hover{background:#6a4de0}
+        button:disabled{background:#444;cursor:not-allowed}
+        .image-box{margin-top:32px;padding:20px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;min-height:200px;display:flex;align-items:center;justify-content:center}
+        .image-box img{max-width:100%;border-radius:4px;image-rendering:pixelated}
+        .placeholder{color:#555;font-size:.95rem}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>GAN Image Generator</h1>
+    <p class="subtitle">Generates handwritten digits using a trained GAN on MNIST.</p>
+    <button id="btn" onclick="generate()">Generate Images</button>
+    <div class="image-box" id="output">
+        <p class="placeholder">Click Generate to produce images</p>
+    </div>
+</div>
+<script>
+function generate(){
+    const btn=document.getElementById("btn");
+    btn.disabled=true;
+    btn.textContent="Generating...";
+    fetch("/generate")
+        .then(r=>r.json())
+        .then(data=>{
+            document.getElementById("output").innerHTML=`<img src="data:image/png;base64,${data.image}" alt="Generated images">`;
+            btn.disabled=false;
+            btn.textContent="Generate Images";
+        });
+}
+</script>
+</body>
+</html>
