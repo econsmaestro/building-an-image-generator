@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.env
+venv/
+env/
+
+# Data
+data/
+
+# Generated images
+*.png
+*.jpg
