@@ -1,9 +1,29 @@
 import { Router, type Request, type Response } from "express";
 import http from "http";
 import https from "https";
+import crypto from "crypto";
 import { PYTHON_BACKEND_URL } from "../lib/python-backend";
 
 const router = Router();
+
+const tempImages = new Map<string, { data: Buffer; mime: string; expires: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of tempImages) {
+    if (entry.expires < now) tempImages.delete(id);
+  }
+}, 30_000);
+
+router.get("/temp-image/:id", (req: Request, res: Response) => {
+  const entry = tempImages.get(req.params.id);
+  if (!entry || entry.expires < Date.now()) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader("Content-Type", entry.mime);
+  res.end(entry.data);
+});
 
 router.get("/generate", (req: Request, res: Response) => {
   const url = `${PYTHON_BACKEND_URL}/generate`;
@@ -58,9 +78,33 @@ router.post("/enhance-image", (req: Request, res: Response) => {
   }
 
   const imageBuffer = Buffer.from(imageBase64, "base64");
+  const id = crypto.randomUUID();
+  tempImages.set(id, {
+    data: imageBuffer,
+    mime: "image/jpeg",
+    expires: Date.now() + 5 * 60 * 1000,
+  });
+
+  const domain = process.env.REPLIT_DEV_DOMAIN ?? process.env.REPLIT_DOMAINS?.split(",")[0];
+  if (!domain) {
+    res.status(500).json({ error: "Server misconfiguration: no public domain available." });
+    return;
+  }
+
+  const token = process.env.HF_TOKEN;
+  if (!token) {
+    res.status(500).json({ error: "Missing HuggingFace token." });
+    return;
+  }
+
   const bodyJson = JSON.stringify({
-    inputs: imageBase64,
-    parameters: { prompt: prompt.trim() },
+    inputs: `https://${domain}/api/temp-image/${id}`,
+    parameters: {
+      prompt: prompt.trim(),
+      guidance_scale: 7.5,
+      num_inference_steps: 25,
+      image_guidance_scale: 1.5,
+    },
   });
 
   const options = {
@@ -68,22 +112,23 @@ router.post("/enhance-image", (req: Request, res: Response) => {
     path: "/models/timbrooks/instruct-pix2pix",
     method: "POST",
     headers: {
+      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
       "Content-Length": Buffer.byteLength(bodyJson),
-      "X-Wait-For-Model": "true",
     },
   };
 
-  void imageBuffer;
+  req.log.info({ id, domain }, "Calling HuggingFace instruct-pix2pix");
 
-  const hfReq = https.request(options, (hfRes) => {
+  const hfReq = https.request(options, (imgRes) => {
+    tempImages.delete(id);
     const chunks: Buffer[] = [];
-    hfRes.on("data", (chunk: Buffer) => chunks.push(chunk));
-    hfRes.on("end", () => {
+    imgRes.on("data", (chunk: Buffer) => chunks.push(chunk));
+    imgRes.on("end", () => {
       const raw = Buffer.concat(chunks);
-      const contentType = hfRes.headers["content-type"] ?? "";
+      const contentType = imgRes.headers["content-type"] ?? "";
 
-      if (contentType.startsWith("image/")) {
+      if (imgRes.statusCode === 200 && contentType.startsWith("image/")) {
         res.json({ image: raw.toString("base64") });
         return;
       }
@@ -93,29 +138,35 @@ router.post("/enhance-image", (req: Request, res: Response) => {
         if (
           typeof parsed === "object" &&
           parsed !== null &&
-          "error" in parsed
+          "error" in parsed &&
+          typeof (parsed as { error?: unknown }).error === "string"
         ) {
-          const errMsg = (parsed as { error: string }).error;
-          if (errMsg.toLowerCase().includes("loading")) {
-            res
-              .status(503)
-              .json({ error: "Model is warming up, please try again in 30 seconds." });
-          } else {
-            res.status(502).json({ error: errMsg });
-          }
-        } else {
-          res.status(502).json({ error: "Unexpected response from model." });
+          const message = (parsed as { error: string }).error;
+          req.log.warn({ statusCode: imgRes.statusCode, message }, "HuggingFace img2img failed");
+          res.status(message.toLowerCase().includes("loading") ? 503 : 502).json({
+            error: message.toLowerCase().includes("loading")
+              ? "Model is warming up, please try again in a minute."
+              : "Image enhancement failed. Please try again.",
+          });
+          return;
         }
       } catch {
-        res.status(502).json({ error: "Image enhancement failed. Please try again." });
+        // fall through
       }
+
+      req.log.warn(
+        { statusCode: imgRes.statusCode, contentType },
+        "HuggingFace img2img returned unexpected response",
+      );
+      res.status(502).json({ error: "Image enhancement failed. Please try again." });
     });
   });
 
   hfReq.on("error", (err) => {
-    req.log.error({ err }, "HuggingFace request failed");
-    res.status(502).json({ error: "Image enhancement failed. Please try again." });
-  });
+      tempImages.delete(id);
+      req.log.error({ err }, "HuggingFace img2img request failed");
+      res.status(502).json({ error: "Image enhancement failed. Please try again." });
+    });
 
   hfReq.write(bodyJson);
   hfReq.end();
