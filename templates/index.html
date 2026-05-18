@@ -6,288 +6,39 @@
     <title>GAN Image Generator</title>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'Segoe UI',sans-serif;background:#0f0f0f;color:#e0e0e0;min-height:100vh}
-        .header{padding:20px 32px;border-bottom:1px solid #2a2a2a}
-        .header h1{font-size:1.4rem;color:#fff}
-        .header p{color:#555;font-size:.82rem;margin-top:3px}
-        .tabs{display:flex;border-bottom:1px solid #2a2a2a;padding:0 32px}
-        .tab{padding:12px 20px;cursor:pointer;color:#555;font-size:.9rem;border-bottom:2px solid transparent;transition:all .2s}
-        .tab:hover{color:#aaa}
-        .tab.active{color:#7c5cfc;border-bottom-color:#7c5cfc;font-weight:600}
-        .panel{display:none;padding:32px;max-width:720px;margin:0 auto}
-        .panel.active{display:block}
-        .btn{padding:11px 28px;background:#7c5cfc;color:#fff;font-size:.9rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:background .2s}
-        .btn:hover{background:#6a4de0}
-        .btn:disabled{background:#2a2a2a;color:#444;cursor:not-allowed}
-        .btn-sm{padding:8px 18px;font-size:.83rem}
-        .btn-ghost{background:transparent;border:1px solid #2a2a2a;color:#666}
-        .btn-ghost:hover{background:#1a1a1a;color:#aaa}
-        .image-box{margin-top:20px;padding:20px;background:#141414;border:1px solid #2a2a2a;border-radius:10px;min-height:160px;display:flex;align-items:center;justify-content:center}
+        body{font-family:'Segoe UI',sans-serif;background:#0f0f0f;color:#e0e0e0;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:40px 20px}
+        .container{width:100%;max-width:600px;text-align:center}
+        h1{font-size:2rem;font-weight:700;margin-bottom:6px;color:#fff}
+        .subtitle{color:#888;font-size:.95rem;margin-bottom:36px}
+        button{padding:14px 40px;background:#7c5cfc;color:#fff;font-size:1rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:background 0.2s}
+        button:hover{background:#6a4de0}
+        button:disabled{background:#444;cursor:not-allowed}
+        .image-box{margin-top:32px;padding:20px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;min-height:200px;display:flex;align-items:center;justify-content:center}
         .image-box img{max-width:100%;border-radius:4px;image-rendering:pixelated}
-        .placeholder{color:#333;font-size:.9rem}
-        /* Chat */
-        .chat-messages{height:400px;overflow-y:auto;background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
-        .msg{display:flex;flex-direction:column;gap:6px}
-        .msg.user{align-items:flex-end}
-        .msg.bot{align-items:flex-start}
-        .bubble{padding:10px 14px;border-radius:14px;max-width:80%;font-size:.88rem;line-height:1.55}
-        .msg.user .bubble{background:#7c5cfc;color:#fff;border-radius:14px 14px 4px 14px}
-        .msg.bot .bubble{background:#1c1c1c;color:#ccc;border-radius:14px 14px 14px 4px;border:1px solid #2a2a2a}
-        .msg.bot img{max-width:280px;border-radius:8px;image-rendering:pixelated;margin-top:4px}
-        .dl-link{display:inline-block;margin-top:6px;padding:5px 14px;background:#1c1c1c;border:1px solid #2a2a2a;border-radius:6px;color:#7c5cfc;font-size:.78rem;text-decoration:none;transition:background .2s}
-        .dl-link:hover{background:#2a2a2a}
-        .typing-dot{display:inline-block;width:6px;height:6px;background:#555;border-radius:50%;margin:0 2px;animation:blink 1.2s infinite}
-        .typing-dot:nth-child(2){animation-delay:.2s}
-        .typing-dot:nth-child(3){animation-delay:.4s}
-        @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
-        .chat-row{display:flex;gap:8px;margin-top:12px}
-        .chat-input{flex:1;background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:11px 14px;color:#e0e0e0;font-size:.9rem;outline:none;transition:border-color .2s;font-family:inherit}
-        .chat-input:focus{border-color:#7c5cfc}
-        /* Enhance */
-        .upload-zone{border:2px dashed #2a2a2a;border-radius:10px;padding:50px;text-align:center;cursor:pointer;color:#333;font-size:.9rem;transition:all .2s}
-        .upload-zone:hover{border-color:#7c5cfc;color:#7c5cfc}
-        .enh-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
-        .enh-panel{background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px}
-        .enh-panel label{font-size:.72rem;color:#444;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:10px}
-        .enh-panel img{max-width:100%;border-radius:4px;image-rendering:pixelated;display:block}
-        .sliders{margin-top:20px;display:flex;flex-direction:column;gap:12px}
-        .sl-row{background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px}
-        .sl-label{display:flex;justify-content:space-between;font-size:.83rem;color:#666;margin-bottom:8px}
-        .sl-label span{color:#7c5cfc;font-weight:600}
-        input[type=range]{width:100%;accent-color:#7c5cfc}
-        .enh-actions{display:flex;gap:8px;margin-top:14px}
-        .section-divider{margin:28px 0 16px;font-size:.72rem;color:#444;text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:10px}
-        .section-divider::after{content:'';flex:1;height:1px;background:#2a2a2a}
+        .placeholder{color:#555;font-size:.95rem}
     </style>
 </head>
 <body>
-<div class="header">
+<div class="container">
     <h1>GAN Image Generator</h1>
-    <p>Stable Diffusion image generation · AI chat · Image enhancement</p>
-</div>
-
-<div class="tabs">
-    <div class="tab active" onclick="switchTab('generate')">Generate</div>
-    <div class="tab" onclick="switchTab('enhance')">Enhance</div>
-</div>
-
-<!-- Generate -->
-<div class="panel active" id="tab-generate">
-    <div class="chat-messages" id="chat-box">
-        <div class="msg bot">
-            <div class="bubble">Describe anything you'd like to generate and click <strong>Generate</strong>. Try: <em>"a bird in a forest"</em>, <em>"a sunset over the ocean"</em>, or <em>"a futuristic city"</em>.</div>
-        </div>
-    </div>
-    <div class="chat-row">
-        <input class="chat-input" id="chat-in" placeholder="Describe what you want to generate..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();doGenerate()}">
-        <button class="btn btn-sm" id="gen-btn" onclick="doGenerate()">Generate</button>
+    <p class="subtitle">Generates handwritten digits using a trained GAN on MNIST.</p>
+    <button id="btn" onclick="generate()">Generate Images</button>
+    <div class="image-box" id="output">
+        <p class="placeholder">Click Generate to produce images</p>
     </div>
 </div>
-
-<!-- Enhance -->
-<div class="panel" id="tab-enhance">
-    <input type="file" id="file-pick" accept="image/*" style="display:none" onchange="loadFile(event)">
-    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-pick').click()">
-        Click to upload an image to enhance
-    </div>
-    <div id="enh-content" style="display:none">
-        <div class="enh-grid">
-            <div class="enh-panel"><label>Original</label><img id="orig-img" src="" alt="Original"></div>
-            <div class="enh-panel"><label>Enhanced</label><img id="enh-img" src="" alt="Enhanced"></div>
-        </div>
-        <div class="sliders">
-            <div class="sl-row">
-                <div class="sl-label">Brightness <span id="v-br">1.0</span></div>
-                <input type="range" id="sl-br" min="0.1" max="3" step="0.1" value="1.0" oninput="sv('br');applyEnh()">
-            </div>
-            <div class="sl-row">
-                <div class="sl-label">Contrast <span id="v-ct">1.0</span></div>
-                <input type="range" id="sl-ct" min="0.1" max="3" step="0.1" value="1.0" oninput="sv('ct');applyEnh()">
-            </div>
-            <div class="sl-row">
-                <div class="sl-label">Sharpness <span id="v-sh">1.0</span></div>
-                <input type="range" id="sl-sh" min="0" max="5" step="0.1" value="1.0" oninput="sv('sh');applyEnh()">
-            </div>
-            <div class="sl-row">
-                <div class="sl-label">Blur <span id="v-bl">0</span></div>
-                <input type="range" id="sl-bl" min="0" max="5" step="0.5" value="0" oninput="sv('bl');applyEnh()">
-            </div>
-        </div>
-        <div class="enh-actions">
-            <button class="btn btn-sm" onclick="dlEnh()">Download</button>
-            <button class="btn btn-sm btn-ghost" onclick="resetSliders()">Reset</button>
-            <button class="btn btn-sm btn-ghost" onclick="newUpload()">Upload New</button>
-        </div>
-        <div class="section-divider">AI Enhancement</div>
-        <div class="chat-messages" id="enh-chat-box" style="height:260px">
-            <div class="msg bot">
-                <div class="bubble">Describe how you'd like to enhance the image. Try: <em>"make it brighter and sharper"</em>, <em>"boost the contrast"</em>, or <em>"add a soft blur"</em>.</div>
-            </div>
-        </div>
-        <div class="chat-row" style="margin-top:12px">
-            <input class="chat-input" id="enh-chat-in" placeholder="Describe enhancements..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();doEnhChat()}">
-            <button class="btn btn-sm" id="enh-chat-btn" onclick="doEnhChat()">Enhance</button>
-        </div>
-    </div>
-</div>
-
 <script>
-let curFile=null, enhTimer=null, enhChatImageB64=null, enhChatHistory=[], genHistory=[];
-
-function switchTab(name){
-    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['generate','enhance'][i]===name));
-    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-    document.getElementById('tab-'+name).classList.add('active');
-}
-
-// --- Generate ---
-function addMsg(role,text,img){
-    const box=document.getElementById('chat-box');
-    const el=document.createElement('div');
-    el.className='msg '+role;
-    const imgHtml=img?`<img src="data:image/png;base64,${img}"><br><a class="dl-link" href="data:image/png;base64,${img}" download="generated.png">Download</a>`:'';
-    el.innerHTML=`<div class="bubble">${text.replace(/\n/g,'<br>')}</div>`+imgHtml;
-    box.appendChild(el);
-    box.scrollTop=box.scrollHeight;
-}
-function addTyping(){
-    const box=document.getElementById('chat-box');
-    const el=document.createElement('div');
-    el.className='msg bot'; el.id='typing';
-    el.innerHTML='<div class="bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
-    box.appendChild(el); box.scrollTop=box.scrollHeight;
-}
-function rmTyping(){const el=document.getElementById('typing');if(el)el.remove()}
-
-function doGenerate(){
-    const inp=document.getElementById('chat-in');
-    const btn=document.getElementById('gen-btn');
-    const msg=inp.value.trim();
-    if(!msg)return;
-    inp.value='';
-    addMsg('user',msg);
-    btn.disabled=true; inp.disabled=true; btn.textContent='Generating...';
-    addTyping();
-
-    // Always fetch the image directly so it's guaranteed to appear.
-    // Chat runs in parallel only for the conversational reply text.
-    const imgPromise=fetch('/generate?prompt='+encodeURIComponent(msg)).then(r=>r.json()).then(d=>{if(d.error)throw new Error(d.error);return d;});
-    const chatPromise=fetch('/chat',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg,history:genHistory})
-    }).then(r=>r.json()).catch(()=>({reply:'Here are your generated digits!',history:genHistory}));
-
-    Promise.all([imgPromise,chatPromise]).then(([imgData,chatData])=>{
-        rmTyping();
-        addMsg('bot',chatData.reply||'Here are your generated digits!',imgData.image);
-        if(chatData.history) genHistory=chatData.history;
-        btn.disabled=false; inp.disabled=false; btn.textContent='Generate'; inp.focus();
-    }).catch((err)=>{
-        rmTyping();
-        addMsg('bot','Error: '+err.message);
-        btn.disabled=false; inp.disabled=false; btn.textContent='Generate';
-    });
-}
-
-// --- Enhance ---
-function loadFile(e){
-    curFile=e.target.files[0];
-    enhChatHistory=[];
-    const reader=new FileReader();
-    reader.onload=ev=>{
-        enhChatImageB64=ev.target.result.split(',')[1];
-        document.getElementById('orig-img').src=ev.target.result;
-        document.getElementById('enh-img').src=ev.target.result;
-        document.getElementById('upload-zone').style.display='none';
-        document.getElementById('enh-content').style.display='block';
-    };
-    reader.readAsDataURL(curFile);
-}
-function sv(id){
-    const map={br:'sl-br',ct:'sl-ct',sh:'sl-sh',bl:'sl-bl'};
-    document.getElementById('v-'+id).textContent=document.getElementById(map[id]).value;
-}
-function applyEnh(){
-    if(!curFile)return;
-    clearTimeout(enhTimer);
-    enhTimer=setTimeout(()=>{
-        const fd=new FormData();
-        fd.append('image',curFile);
-        fd.append('brightness',document.getElementById('sl-br').value);
-        fd.append('contrast',document.getElementById('sl-ct').value);
-        fd.append('sharpness',document.getElementById('sl-sh').value);
-        fd.append('blur',document.getElementById('sl-bl').value);
-        fetch('/enhance',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-            document.getElementById('enh-img').src='data:image/png;base64,'+d.image;
+function generate(){
+    const btn=document.getElementById("btn");
+    btn.disabled=true;
+    btn.textContent="Generating...";
+    fetch("/generate")
+        .then(r=>r.json())
+        .then(data=>{
+            document.getElementById("output").innerHTML=`<img src="data:image/png;base64,${data.image}" alt="Generated images">`;
+            btn.disabled=false;
+            btn.textContent="Generate Images";
         });
-    },200);
-}
-function resetSliders(){
-    [['br','1.0'],['ct','1.0'],['sh','1.0'],['bl','0']].forEach(([id,val])=>{
-        document.getElementById('sl-'+id).value=val;
-        document.getElementById('v-'+id).textContent=val;
-    });
-    applyEnh();
-}
-function newUpload(){
-    curFile=null; enhChatImageB64=null; enhChatHistory=[];
-    document.getElementById('file-pick').value='';
-    document.getElementById('upload-zone').style.display='block';
-    document.getElementById('enh-content').style.display='none';
-    document.getElementById('enh-chat-box').innerHTML='<div class="msg bot"><div class="bubble">Describe how you\'d like to enhance the image. Try: <em>"make it brighter and sharper"</em>, <em>"boost the contrast"</em>, or <em>"add a soft blur"</em>.</div></div>';
-}
-function dlEnh(){
-    const a=document.createElement('a');
-    a.href=document.getElementById('enh-img').src;
-    a.download='enhanced.png'; a.click();
-}
-
-// --- Enhance Chat ---
-function addEnhMsg(role,text){
-    const box=document.getElementById('enh-chat-box');
-    const el=document.createElement('div');
-    el.className='msg '+role;
-    el.innerHTML=`<div class="bubble">${text.replace(/\n/g,'<br>')}</div>`;
-    box.appendChild(el);
-    box.scrollTop=box.scrollHeight;
-}
-function addEnhTyping(){
-    const box=document.getElementById('enh-chat-box');
-    const el=document.createElement('div');
-    el.className='msg bot'; el.id='enh-typing';
-    el.innerHTML='<div class="bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
-    box.appendChild(el); box.scrollTop=box.scrollHeight;
-}
-function rmEnhTyping(){const el=document.getElementById('enh-typing');if(el)el.remove()}
-
-function doEnhChat(){
-    const inp=document.getElementById('enh-chat-in');
-    const btn=document.getElementById('enh-chat-btn');
-    const msg=inp.value.trim();
-    if(!msg||!enhChatImageB64)return;
-    inp.value='';
-    addEnhMsg('user',msg);
-    btn.disabled=true; inp.disabled=true; btn.textContent='Enhancing...';
-    addEnhTyping();
-    fetch('/enhance-chat',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:msg,image:enhChatImageB64,history:enhChatHistory})
-    }).then(r=>r.json()).then(d=>{
-        rmEnhTyping();
-        addEnhMsg('bot',d.reply);
-        if(d.image){
-            enhChatImageB64=d.image;
-            document.getElementById('enh-img').src='data:image/png;base64,'+d.image;
-        }
-        enhChatHistory=d.history||enhChatHistory;
-        btn.disabled=false; inp.disabled=false; btn.textContent='Enhance'; inp.focus();
-    }).catch(()=>{
-        rmEnhTyping();
-        addEnhMsg('bot','Something went wrong. Please try again.');
-        btn.disabled=false; inp.disabled=false; btn.textContent='Enhance';
-    });
 }
 </script>
 </body>
