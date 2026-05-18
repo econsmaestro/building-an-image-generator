@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import http from "http";
 import https from "https";
 import crypto from "crypto";
-import { PYTHON_BACKEND_URL } from "../lib/python-backend";
+import { PYTHON_BACKEND_URL } from "../lib/python_backend";
 
 const router = Router();
 
