@@ -3,7 +3,7 @@ import json
 import base64
 import requests
 from flask import Blueprint,jsonify,request
-from model import make_image
+from model_cgan import make_image_v2 as make_image
 from PIL import Image,ImageEnhance,ImageFilter
 
 chat_bp=Blueprint("chat",__name__)
@@ -14,10 +14,11 @@ MODEL="llama3.2"
 # last generated image kept in memory for the enhance tool
 _state={"last_image":None,"last_count":0}
 
-SYSTEM="""You are an assistant for an AI image generator powered by Stable Diffusion.
-You can generate any image the user describes — animals, landscapes, portraits, abstract art, anything.
-Always call generate_image with a detailed prompt when the user asks to create or generate an image.
-Be creative: expand the user's description into a vivid, detailed prompt for better results.
+SYSTEM="""You are an assistant for a Conditional GAN image generator trained on CIFAR-10.
+The model supports 10 classes: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck.
+Nature/tree/forest prompts map to the deer class (outdoor nature scenes).
+When the user asks for something outside these 10 classes, pick the closest match and briefly mention it.
+Always call generate_image when the user asks to create or generate an image.
 Always use tools when generating or enhancing."""
 
 TOOLS=[

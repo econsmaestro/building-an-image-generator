@@ -14,3 +14,7 @@ data/
 
 # Trained model weights
 generator.pth
+generator_v2.pth
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

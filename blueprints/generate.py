@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from model import make_image
+from model_cgan import make_image_v2, get_class_name
 
 generate_bp = Blueprint("generate", __name__)
 
@@ -7,6 +7,8 @@ generate_bp = Blueprint("generate", __name__)
 def generate():
     prompt = request.args.get("prompt", "a beautiful painting")
     try:
-        return jsonify({"image": make_image(prompt)})
+        image = make_image_v2(prompt)
+        cls = get_class_name(prompt)
+        return jsonify({"image": image, "class": cls})
     except Exception as e:
         return jsonify({"error": str(e), "image": None}), 500

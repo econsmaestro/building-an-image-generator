@@ -23,7 +23,7 @@
         .btn-ghost{background:transparent;border:1px solid #2a2a2a;color:#666}
         .btn-ghost:hover{background:#1a1a1a;color:#aaa}
         .image-box{margin-top:20px;padding:20px;background:#141414;border:1px solid #2a2a2a;border-radius:10px;min-height:160px;display:flex;align-items:center;justify-content:center}
-        .image-box img{max-width:100%;border-radius:4px;image-rendering:pixelated}
+        .image-box img{max-width:100%;border-radius:4px;image-rendering:auto}
         .placeholder{color:#333;font-size:.9rem}
         /* Chat */
         .chat-messages{height:400px;overflow-y:auto;background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
@@ -33,7 +33,7 @@
         .bubble{padding:10px 14px;border-radius:14px;max-width:80%;font-size:.88rem;line-height:1.55}
         .msg.user .bubble{background:#7c5cfc;color:#fff;border-radius:14px 14px 4px 14px}
         .msg.bot .bubble{background:#1c1c1c;color:#ccc;border-radius:14px 14px 14px 4px;border:1px solid #2a2a2a}
-        .msg.bot img{max-width:280px;border-radius:8px;image-rendering:pixelated;margin-top:4px}
+        .msg.bot img{max-width:280px;border-radius:8px;image-rendering:auto;margin-top:4px}
         .dl-link{display:inline-block;margin-top:6px;padding:5px 14px;background:#1c1c1c;border:1px solid #2a2a2a;border-radius:6px;color:#7c5cfc;font-size:.78rem;text-decoration:none;transition:background .2s}
         .dl-link:hover{background:#2a2a2a}
         .typing-dot{display:inline-block;width:6px;height:6px;background:#555;border-radius:50%;margin:0 2px;animation:blink 1.2s infinite}
@@ -49,7 +49,7 @@
         .enh-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
         .enh-panel{background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:16px}
         .enh-panel label{font-size:.72rem;color:#444;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:10px}
-        .enh-panel img{max-width:100%;border-radius:4px;image-rendering:pixelated;display:block}
+        .enh-panel img{max-width:100%;border-radius:4px;image-rendering:auto;display:block}
         .sliders{margin-top:20px;display:flex;flex-direction:column;gap:12px}
         .sl-row{background:#141414;border:1px solid #2a2a2a;border-radius:8px;padding:12px 14px}
         .sl-label{display:flex;justify-content:space-between;font-size:.83rem;color:#666;margin-bottom:8px}
@@ -63,7 +63,7 @@
 <body>
 <div class="header">
     <h1>GAN Image Generator</h1>
-    <p>Stable Diffusion image generation · AI chat · Image enhancement</p>
+    <p>Conditional GAN (CIFAR-10) · airplane · automobile · bird · cat · deer · dog · frog · horse · ship · truck</p>
 </div>
 
 <div class="tabs">
@@ -75,7 +75,7 @@
 <div class="panel active" id="tab-generate">
     <div class="chat-messages" id="chat-box">
         <div class="msg bot">
-            <div class="bubble">Describe anything you'd like to generate and click <strong>Generate</strong>. Try: <em>"a bird in a forest"</em>, <em>"a sunset over the ocean"</em>, or <em>"a futuristic city"</em>.</div>
+            <div class="bubble">Describe what you'd like to generate. Supported: <em>airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck</em>. Nature/tree prompts map to <em>deer</em>.</div>
         </div>
     </div>
     <div class="chat-row">
@@ -180,7 +180,8 @@ function doGenerate(){
 
     Promise.all([imgPromise,chatPromise]).then(([imgData,chatData])=>{
         rmTyping();
-        addMsg('bot',chatData.reply||'Here are your generated digits!',imgData.image);
+        const classNote=imgData.class?` <span style="color:#555;font-size:.78rem">[${imgData.class}]</span>`:'';
+        addMsg('bot',(chatData.reply||'Done!')+classNote,imgData.image);
         if(chatData.history) genHistory=chatData.history;
         btn.disabled=false; inp.disabled=false; btn.textContent='Generate'; inp.focus();
     }).catch((err)=>{
