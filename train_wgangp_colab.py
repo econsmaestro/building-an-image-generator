@@ -102,8 +102,8 @@ def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_ev
     C = ConditionalCritic().to(DEVICE)
 
     # WGAN-GP uses Adam with betas=(0, 0.9)
-    opt_g = torch.optim.Adam(G.parameters(), lr=lr, betas=(0, 0.9))
-    opt_c = torch.optim.Adam(C.parameters(), lr=lr, betas=(0, 0.9))
+    opt_g = torch.optim.Adam(G.parameters(), lr=lr, betas=(0.0, 0.9))
+    opt_c = torch.optim.Adam(C.parameters(), lr=lr, betas=(0.0, 0.9))
 
     ckpt_path = "generator_v2.pth"
 
