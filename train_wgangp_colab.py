@@ -106,8 +106,19 @@ def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_ev
     opt_c = torch.optim.Adam(C.parameters(), lr=lr, betas=(0.0, 0.9))
 
     ckpt_path = "generator_v2.pth"
+    full_ckpt_path = "checkpoint_wgangp.pth"
+    start_epoch = 1
 
-    for epoch in range(1, epochs + 1):
+    if os.path.exists(full_ckpt_path):
+        ckpt = torch.load(full_ckpt_path, map_location=DEVICE)
+        G.load_state_dict(ckpt["G"])
+        C.load_state_dict(ckpt["C"])
+        opt_g.load_state_dict(ckpt["opt_g"])
+        opt_c.load_state_dict(ckpt["opt_c"])
+        start_epoch = ckpt["epoch"] + 1
+        print(f"Resumed from epoch {ckpt['epoch']}")
+
+    for epoch in range(start_epoch, epochs + 1):
         g_total = c_total = 0.0
         for real_imgs, labels in loader:
             real_imgs, labels = real_imgs.to(DEVICE), labels.to(DEVICE)
@@ -139,7 +150,9 @@ def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_ev
 
         if epoch % save_every == 0 or epoch == epochs:
             torch.save(G.state_dict(), ckpt_path)
-            print(f"  -> Saved {ckpt_path}")
+            torch.save({"epoch": epoch, "G": G.state_dict(), "C": C.state_dict(),
+                        "opt_g": opt_g.state_dict(), "opt_c": opt_c.state_dict()}, full_ckpt_path)
+            print(f"  -> Saved {ckpt_path} + {full_ckpt_path}")
 
     print(f"\nDone. Download {ckpt_path} and replace the one in your project folder.")
 
