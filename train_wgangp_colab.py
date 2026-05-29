@@ -16,6 +16,7 @@ import torchvision
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
 import torch.autograd as autograd
+from torch.cuda.amp import autocast, GradScaler
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Device: {DEVICE}")
@@ -91,12 +92,12 @@ def gradient_penalty(critic, real, fake, labels, device):
     return ((grad_norm - 1) ** 2).mean()
 
 
-def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_every=10):
+def train(epochs=100, batch_size=512, lr=1e-4, n_critic=3, lambda_gp=10, save_every=10):
     print(f"Training WGAN-GP  |  epochs={epochs}  batch={batch_size}  n_critic={n_critic}")
 
     transform = T.Compose([T.Resize(64), T.ToTensor(), T.Normalize((0.5,)*3, (0.5,)*3)])
     dataset = torchvision.datasets.CIFAR10(root="data", train=True, download=True, transform=transform)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True)
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, drop_last=True, pin_memory=True)
 
     G = ConditionalGenerator().to(DEVICE)
     C = ConditionalCritic().to(DEVICE)
@@ -104,6 +105,8 @@ def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_ev
     # WGAN-GP uses Adam with betas=(0, 0.9)
     opt_g = torch.optim.Adam(G.parameters(), lr=lr, betas=(0.0, 0.9))
     opt_c = torch.optim.Adam(C.parameters(), lr=lr, betas=(0.0, 0.9))
+    scaler_g = GradScaler()
+    scaler_c = GradScaler()
 
     ckpt_path = "generator_v2.pth"
     full_ckpt_path = "checkpoint_wgangp.pth"
@@ -127,20 +130,24 @@ def train(epochs=100, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_ev
             # ── Critic steps (n_critic per generator step) ──
             for _ in range(n_critic):
                 z = torch.randn(bs, 100, device=DEVICE)
-                fake_imgs = G(z, labels).detach()
-                gp = gradient_penalty(C, real_imgs, fake_imgs, labels, DEVICE)
-                c_loss = C(fake_imgs, labels).mean() - C(real_imgs, labels).mean() + lambda_gp * gp
+                with autocast():
+                    fake_imgs = G(z, labels).detach()
+                    gp = gradient_penalty(C, real_imgs, fake_imgs, labels, DEVICE)
+                    c_loss = C(fake_imgs, labels).mean() - C(real_imgs, labels).mean() + lambda_gp * gp
                 opt_c.zero_grad()
-                c_loss.backward()
-                opt_c.step()
+                scaler_c.scale(c_loss).backward()
+                scaler_c.step(opt_c)
+                scaler_c.update()
 
             # ── Generator step ──
             z = torch.randn(bs, 100, device=DEVICE)
-            fake_imgs = G(z, labels)
-            g_loss = -C(fake_imgs, labels).mean()
+            with autocast():
+                fake_imgs = G(z, labels)
+                g_loss = -C(fake_imgs, labels).mean()
             opt_g.zero_grad()
-            g_loss.backward()
-            opt_g.step()
+            scaler_g.scale(g_loss).backward()
+            scaler_g.step(opt_g)
+            scaler_g.update()
 
             g_total += g_loss.item()
             c_total += c_loss.item()
