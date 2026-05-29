@@ -92,7 +92,7 @@ def gradient_penalty(critic, real, fake, labels, device):
     return ((grad_norm - 1) ** 2).mean()
 
 
-def train(epochs=100, batch_size=512, lr=1e-4, n_critic=3, lambda_gp=10, save_every=10):
+def train(epochs=200, batch_size=256, lr=1e-4, n_critic=5, lambda_gp=10, save_every=10):
     print(f"Training WGAN-GP  |  epochs={epochs}  batch={batch_size}  n_critic={n_critic}")
 
     transform = T.Compose([T.Resize(64), T.ToTensor(), T.Normalize((0.5,)*3, (0.5,)*3)])
